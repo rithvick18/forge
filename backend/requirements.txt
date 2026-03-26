@@ -1,0 +1,80 @@
+# Core Framework
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
+python-dotenv==1.0.1
+pydantic==2.7.1
+pydantic-settings==2.3.1
+
+# Data Ingestion
+pytrends==4.9.2
+requests==2.32.3
+httpx==0.27.0
+feedparser==6.0.11
+
+# Data Processing
+pandas==2.2.2
+numpy==1.26.4
+polars==0.20.31
+openpyxl==3.1.4
+python-dateutil==2.9.0
+pyarrow==16.1.0
+
+# ML & Forecasting
+scikit-learn==1.5.0
+prophet==1.1.5
+xgboost==2.0.3
+lightgbm==4.3.0
+statsmodels==0.14.2
+pmdarima==2.0.4
+optuna==3.6.1
+joblib==1.4.2
+
+# NLP
+torch==2.3.1
+transformers==4.41.2
+sentencepiece==0.2.0
+bertopic==0.16.2
+umap-learn==0.5.6
+nltk==3.8.1
+# spacy==3.7.4  # Removed due to typer dependency conflict
+langdetect==1.0.9
+deep-translator==1.11.4
+sentence-transformers==3.0.1
+
+# LLM / Agent
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-google-genai
+langchain-mistralai
+mistralai
+langchain-openai
+langgraph
+openai
+google-generativeai
+
+# Vector Store
+# chromadb==0.5.3  # Removed due to typer dependency conflict
+faiss-cpu==1.8.0
+tiktoken==0.7.0
+
+# Database
+sqlalchemy[asyncio]==2.0.31
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+supabase==2.5.0
+
+# Cache
+redis==5.0.6
+
+# Auth
+fastapi-users[sqlalchemy]==13.0.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+
+# Scheduling
+schedule==1.2.2
+
+# Dev / Test
+pytest==8.2.2
+pytest-asyncio==0.23.7
