@@ -1,8 +1,9 @@
 import axios from 'axios'
+import { useConfigStore } from '../store/configStore'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
-  timeout: 30000,
+  timeout: 120000,
 })
 
 api.interceptors.response.use(
@@ -12,6 +13,11 @@ api.interceptors.response.use(
     return Promise.reject(new Error(msg))
   }
 )
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+export const dashboardApi = {
+  metrics: () => api.get('/dashboard/metrics'),
+}
 
 // ── Trends ────────────────────────────────────────────────────────────────────
 export const trendsApi = {
@@ -31,8 +37,10 @@ export const trendsApi = {
 
 // ── Insights ──────────────────────────────────────────────────────────────────
 export const insightsApi = {
-  generate: (category: string, focus: string | null = null) =>
-    api.post('/insights/generate', { category, focus }),
+  generate: (category: string, focus: string | null = null) => {
+    const model_name = useConfigStore.getState().selectedModel
+    return api.post('/insights/generate', { category, focus, model_name })
+  },
 
   byCategory: (category: string) =>
     api.get('/insights/categories', { params: { category } }),
@@ -40,8 +48,10 @@ export const insightsApi = {
 
 // ── Products ──────────────────────────────────────────────────────────────────
 export const productsApi = {
-  recommend: (category: string, region: string | null = null, top_n: number = 5) =>
-    api.post('/products/recommend', { category, region, top_n }),
+  recommend: (category: string, region: string | null = null, top_n: number = 5) => {
+    const model_name = useConfigStore.getState().selectedModel
+    return api.post('/products/recommend', { category, region, top_n, model_name })
+  },
 
   categories: () => api.get('/products/categories'),
 }

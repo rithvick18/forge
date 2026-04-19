@@ -15,7 +15,7 @@ async def recommend_products(request: ProductRecommendationRequest):
     """
     Generate AI product innovation recommendations based on trending signals.
     """
-    cache_key = f"products:{request.category}:{request.region}:{request.top_n}"
+    cache_key = f"products:{request.category}:{request.region}:{request.top_n}:{request.model_name}"
     cached = await cache_get(cache_key)
     if cached:
         return cached
@@ -39,6 +39,7 @@ async def recommend_products(request: ProductRecommendationRequest):
             category=request.category,
             region=request.region,
             top_n=request.top_n,
+            model_name=request.model_name,
         )
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))

@@ -82,6 +82,7 @@ class InsightGenerateRequest(BaseModel):
     focus: Optional[str] = Field(
         None, description="Specific angle, e.g. 'rural consumers in Tamil Nadu'"
     )
+    model_name: str = Field(default="mistral")
 
 
 # ── Products ─────────────────────────────────────────────────────────────────
@@ -107,6 +108,7 @@ class ProductRecommendationRequest(BaseModel):
     category: str
     region: Optional[str] = None
     top_n: int = Field(default=5, ge=1, le=20)
+    model_name: str = Field(default="mistral")
 
 
 # ── Forecast ──────────────────────────────────────────────────────────────────

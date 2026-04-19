@@ -1,4 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useConfigStore } from '../../store/configStore'
+import { Sparkles } from 'lucide-react'
 
 const headerTabs = [
   { to: '/dashboard', label: 'Global Trends' },
@@ -8,6 +10,7 @@ const headerTabs = [
 
 export default function Header() {
   const navigate = useNavigate()
+  const { selectedModel, setSelectedModel } = useConfigStore()
 
   return (
     <header className="flex justify-between items-center px-8 w-full sticky top-0 z-40 bg-[#111110]/80 backdrop-blur-xl h-16 border-b border-white/5 shadow-[0px_20px_40px_rgba(0,0,0,0.6)]">
@@ -41,6 +44,31 @@ export default function Header() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-4">
+        {/* Model Switcher */}
+        <div className="flex bg-surface-container-high p-1 rounded-xl border border-white/10 mr-2">
+          <button
+            onClick={() => setSelectedModel('mistral')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              selectedModel === 'mistral' 
+                ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Mistral Large
+          </button>
+          <button
+            onClick={() => setSelectedModel('gemini')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+              selectedModel === 'gemini' 
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Sparkles size={12} />
+            Gemini Flash
+          </button>
+        </div>
+
         <button
           onClick={() => navigate('/trends')}
           className="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-all active:translate-y-px"

@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import init_db
 from app.core.cache import init_cache
-from app.api.routes import trends, insights, products, health, copilot, settings as settings_router
+from app.api.routes import trends, insights, products, health, copilot, dashboard, settings as settings_router
 
 
 @asynccontextmanager
@@ -31,6 +31,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router,    prefix="/api/v1",          tags=["health"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard",tags=["dashboard"])
 app.include_router(trends.router,    prefix="/api/v1/trends",   tags=["trends"])
 app.include_router(insights.router,  prefix="/api/v1/insights", tags=["insights"])
 app.include_router(products.router,  prefix="/api/v1/products", tags=["products"])

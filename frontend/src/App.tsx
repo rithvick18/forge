@@ -10,7 +10,7 @@ import Settings  from './pages/Settings'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       {/* Background nebula blobs */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-secondary-container/10 rounded-full blur-[120px]" />

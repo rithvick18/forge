@@ -1,6 +1,34 @@
+import { useEffect, useState } from 'react'
+import { dashboardApi } from '../lib/api'
+
 export default function Dashboard() {
+  const [data, setData] = useState<any>(null)
+
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const metrics = await dashboardApi.metrics()
+        setData(metrics)
+      } catch (err) {
+        console.error('Failed to fetch dashboard metrics', err)
+      }
+    }
+    fetchMetrics()
+    const interval = setInterval(fetchMetrics, 3000) // 3 seconds for live feel
+    return () => clearInterval(interval)
+  }, [])
+
+  if (!data) {
+    return (
+      <div className="flex h-full min-h-[60vh] items-center justify-center text-gray-500 text-sm font-bold animate-pulse">
+        <span className="material-symbols-outlined mr-3 animate-spin">sync</span>
+        CONNECTING TO ORBITAL ENGINE...
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-8 pb-8 animate-in fade-in duration-500">
 
       {/* HERO METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -11,7 +39,7 @@ export default function Dashboard() {
             <div className="space-y-1">
               <span className="text-xs font-bold text-gray-500 tracking-widest uppercase">Market Share</span>
               <div className="text-3xl font-extrabold tracking-tighter">
-                24.8<span className="text-primary text-xl">%</span>
+                {data.marketShare}<span className="text-primary text-xl">%</span>
               </div>
             </div>
             <div className="bg-primary/10 p-2 rounded-lg">
@@ -20,10 +48,10 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center text-xs font-bold text-[#10b981]">
             <span className="material-symbols-outlined text-sm mr-1">trending_up</span>
-            +2.4% vs last Q
+            {data.marketShareTrend}
           </div>
           <div className="absolute bottom-0 left-0 w-full h-1 bg-primary/20">
-            <div className="h-full bg-primary" style={{ width: '24.8%' }} />
+            <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${data.marketShare}%` }} />
           </div>
         </div>
 
@@ -32,17 +60,21 @@ export default function Dashboard() {
           <div className="flex justify-between items-start mb-4">
             <div className="space-y-1">
               <span className="text-xs font-bold text-gray-500 tracking-widest uppercase">SKU Health</span>
-              <div className="text-3xl font-extrabold tracking-tighter text-[#10b981]">Optimal</div>
+              <div className={`text-3xl font-extrabold tracking-tighter ${data.skuHealth === 'Warning' ? 'text-[#ffb95c]' : 'text-[#10b981]'}`}>
+                {data.skuHealth}
+              </div>
             </div>
-            <div className="bg-emerald-500/10 p-2 rounded-lg">
-              <span className="material-symbols-outlined text-[#10b981]">verified</span>
+            <div className={`${data.skuHealth === 'Warning' ? 'bg-[#ffb95c]/10' : 'bg-emerald-500/10'} p-2 rounded-lg`}>
+              <span className={`material-symbols-outlined ${data.skuHealth === 'Warning' ? 'text-[#ffb95c]' : 'text-[#10b981]'}`}>
+                {data.skuHealth === 'Warning' ? 'warning' : 'verified'}
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full bg-[#10b981]" style={{ width: '92%' }} />
+              <div className={`h-full transition-all duration-1000 ${data.skuHealth === 'Warning' ? 'bg-[#ffb95c]' : 'bg-[#10b981]'}`} style={{ width: `${data.skuHealthPercentage}%` }} />
             </div>
-            <span className="text-[10px] font-bold text-gray-400">92%</span>
+            <span className="text-[10px] font-bold text-gray-400">{data.skuHealthPercentage}%</span>
           </div>
         </div>
 
@@ -52,7 +84,7 @@ export default function Dashboard() {
             <div className="space-y-1">
               <span className="text-xs font-bold text-gray-500 tracking-widest uppercase">Regional CAGR</span>
               <div className="text-3xl font-extrabold tracking-tighter">
-                12.2<span className="text-tertiary text-xl">%</span>
+                {data.regionalCagr}<span className="text-tertiary text-xl">%</span>
               </div>
             </div>
             <div className="bg-tertiary/10 p-2 rounded-lg">
@@ -105,29 +137,48 @@ export default function Dashboard() {
                   <stop offset="100%" stopColor="#c47f0a" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              <path
-                d="M0,80 Q100,60 200,90 T400,40 T600,70 T800,20 T1000,50 L1000,150 L0,150 Z"
-                fill="url(#gradient-primary)"
-              />
-              <path
-                d="M0,80 Q100,60 200,90 T400,40 T600,70 T800,20 T1000,50"
-                fill="none" stroke="#c47f0a" strokeWidth="3" strokeLinecap="round"
-              />
-              <path
-                d="M0,100 Q100,110 200,105 T400,120 T600,110 T800,130 T1000,115"
-                fill="none" stroke="#4b5563" strokeWidth="2" strokeDasharray="8,4"
-              />
+              {(()=>{
+                  const fps = data.globalSalesPerformance.forgePulse;
+                  const cps = data.globalSalesPerformance.competitors;
+                  // Map 0-200 to Y 150-0
+                  const mapY = (val: number) => 150 - (val / 200 * 150);
+                  const xs = [0, 200, 400, 600, 800, 1000];
+                  
+                  // use curve approach for smoother paths matching previous Q-syntax visually (simplified as L here to ensure points hit precisely)
+                  const fpPath = xs.map((x, i) => `${i===0?'M':'L'}${x},${mapY(fps[i])}`).join(' ');
+                  const cpPath = xs.map((x, i) => `${i===0?'M':'L'}${x},${mapY(cps[i])}`).join(' ');
+                  
+                  return (
+                    <>
+                      <path
+                        d={`${fpPath} L1000,150 L0,150 Z`}
+                        fill="url(#gradient-primary)"
+                        className="transition-all duration-1000"
+                      />
+                      <path
+                        d={fpPath}
+                        fill="none" stroke="#c47f0a" strokeWidth="3" strokeLinecap="round"
+                        className="transition-all duration-1000"
+                      />
+                      <path
+                        d={cpPath}
+                        fill="none" stroke="#4b5563" strokeWidth="2" strokeDasharray="8,4"
+                        className="transition-all duration-1000"
+                      />
+                    </>
+                  )
+              })()}
             </svg>
 
             {/* Tooltip */}
             <div className="absolute top-[15%] left-[78%] glass px-3 py-2 rounded-lg border border-primary/30 z-20">
               <div className="text-[10px] text-gray-400 font-bold uppercase">Peak Velocity</div>
-              <div className="text-sm font-bold text-primary">$4.2M</div>
+              <div className="text-sm font-bold text-primary">{data.globalSalesPerformance.peakVelocity}</div>
             </div>
           </div>
 
           <div className="flex justify-between mt-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest px-2">
-            {['Jan','Mar','May','Jul','Sep','Nov'].map(m => <span key={m}>{m}</span>)}
+            {data.globalSalesPerformance.dates.map((m: string) => <span key={m}>{m}</span>)}
           </div>
         </div>
 
@@ -145,16 +196,16 @@ export default function Dashboard() {
 
           <div className="space-y-6 flex-1">
             <div className="relative pl-6 border-l-2 border-secondary/30 py-1">
-              <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-secondary shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
+              <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-secondary shadow-[0_0_10px_rgba(99,102,241,0.8)] animate-pulse" />
               <div className="text-xs font-bold text-secondary mb-1">STRATEGIC ANOMALY</div>
               <p className="text-sm text-on-surface leading-relaxed">
-                Competitor activity in the APAC region has surged by <span className="text-[#10b981] font-bold">14%</span>. Recommend increasing orbital ad-spend by $40k.
+                Competitor activity in the APAC region has surged by <span className="text-[#10b981] font-bold">{data.cognitiveIntel.anomalyBold}</span>. Recommend increasing orbital ad-spend by $40k.
               </p>
             </div>
             <div className="relative pl-6 border-l-2 border-secondary/10 py-1">
               <div className="text-xs font-bold text-gray-500 mb-1">PREDICTIVE TREND</div>
               <p className="text-sm text-on-surface leading-relaxed">
-                Projected market saturation in Sector 7-G by Q4. Shift resources to emerging EMEA clusters.
+                {data.cognitiveIntel.trend}
               </p>
             </div>
             <div className="bg-secondary/5 rounded-2xl p-4 border border-secondary/10">
@@ -162,7 +213,7 @@ export default function Dashboard() {
                 <span className="material-symbols-outlined text-secondary text-sm">auto_awesome</span>
                 <span className="text-[10px] font-black text-secondary tracking-widest uppercase">Forge AI Summary</span>
               </div>
-              <p className="text-xs italic text-gray-400">"Current trajectory suggests a breakout performance. Maintain offensive posture."</p>
+              <p className="text-xs italic text-gray-400">{data.cognitiveIntel.summary}</p>
             </div>
           </div>
 
@@ -193,18 +244,14 @@ export default function Dashboard() {
               </svg>
             </div>
             {/* Map Markers */}
-            <div className="absolute top-[30%] left-[25%] group cursor-pointer">
-              <div className="w-3 h-3 bg-tertiary rounded-full pulse-dot" />
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block glass px-2 py-1 rounded text-[10px] whitespace-nowrap">
-                San Francisco: 82%
+            {data.penetrationMap.map((loc: any, i: number) => (
+              <div key={i} className="absolute group cursor-pointer transition-all duration-1000" style={{ top: loc.top, left: loc.left }}>
+                <div className="w-3 h-3 bg-tertiary rounded-full pulse-dot" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block glass px-2 py-1 rounded text-[10px] whitespace-nowrap z-30">
+                  {loc.city}: {loc.percentage}%
+                </div>
               </div>
-            </div>
-            <div className="absolute top-[45%] left-[55%]">
-              <div className="w-2 h-2 bg-tertiary rounded-full opacity-60" />
-            </div>
-            <div className="absolute top-[65%] left-[80%]">
-              <div className="w-3 h-3 bg-tertiary rounded-full pulse-dot" />
-            </div>
+            ))}
           </div>
         </div>
 
@@ -212,20 +259,16 @@ export default function Dashboard() {
         <div className="glass p-6 rounded-3xl flex flex-col gap-6">
           <h3 className="text-sm font-bold tracking-widest uppercase text-gray-400">Asset Health</h3>
           <div className="space-y-5">
-            {[
-              { label: 'Node Gamma',    sub: 'Processing Load: 42%', color: '#10b981', icon: 'check_circle' },
-              { label: 'Orbital Uplink',sub: 'Ping: 14ms',           color: '#10b981', icon: 'check_circle' },
-              { label: 'Legacy Bridge', sub: 'Status: Throttled',    color: '#ffb95c', icon: 'history' },
-            ].map(({ label, sub, color, icon }) => (
+            {data.assetHealth.map(({ label, sub, color, icon }: any) => (
               <div key={label} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-8 rounded-full" style={{ backgroundColor: color, opacity: icon === 'history' ? 0.4 : 1 }} />
+                  <div className="w-1.5 h-8 rounded-full transition-colors duration-1000" style={{ backgroundColor: color, opacity: icon === 'history' ? 0.4 : 1 }} />
                   <div>
                     <div className="text-xs font-bold">{label}</div>
-                    <div className="text-[10px] text-gray-500">{sub}</div>
+                    <div className="text-[10px] text-gray-500 transition-colors duration-1000">{sub}</div>
                   </div>
                 </div>
-                <span className="material-symbols-outlined text-lg" style={{ color }}>{icon}</span>
+                <span className="material-symbols-outlined text-lg transition-colors duration-1000" style={{ color }}>{icon}</span>
               </div>
             ))}
           </div>
@@ -235,14 +278,17 @@ export default function Dashboard() {
         <div className="glass p-6 rounded-3xl flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-bold tracking-widest uppercase text-gray-400 mb-6">System Terminal</h3>
-            <div className="space-y-2 font-mono text-[10px] text-gray-500">
-              <div className="flex gap-2"><span className="text-primary">&gt;</span> INITIALIZING_SYNC...</div>
-              <div className="flex gap-2"><span className="text-[#10b981]">&gt;</span> LATENCY_NOMINAL</div>
-              <div className="flex gap-2"><span className="text-primary">&gt;</span> FORGE_ENGINE_ACTIVE</div>
+            <div className="space-y-2 font-mono text-[10px] text-gray-500 h-20 overflow-hidden flex flex-col justify-end">
+              {data.terminalLogs.map((log: any, i: number) => (
+                <div key={i} className="flex gap-2 animate-in slide-in-from-bottom-2 duration-300">
+                  <span className={log.type === 'success' ? 'text-[#10b981]' : (log.type === 'warning' ? 'text-[#ffb95c]' : 'text-primary')}>&gt;</span> 
+                  {log.text}
+                </div>
+              ))}
             </div>
           </div>
           <div className="pt-6">
-            <div className="text-[10px] font-bold text-gray-500 mb-2">LAST BACKUP: 12M AGO</div>
+            <div className="text-[10px] font-bold text-gray-500 mb-2">LIVE STREAM ACTIVE</div>
             <button className="w-full bg-surface-container-highest hover:bg-surface-container-high py-3 rounded-xl text-xs font-bold transition-all border border-white/5">
               Force Re-Sync Node
             </button>

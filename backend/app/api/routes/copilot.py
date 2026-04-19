@@ -9,6 +9,7 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     message: str
     history: Optional[List[Dict[str, str]]] = None
+    model_name: str = "mistral"
 
 class ChatResponse(BaseModel):
     response: str
@@ -19,7 +20,7 @@ async def chat_with_copilot(request: ChatRequest):
     Echoing user message through Mistral AI with tool support.
     """
     try:
-        response_text = await copilot_agent.chat(request.message, request.history)
+        response_text = await copilot_agent.chat(request.message, request.history, request.model_name)
         return ChatResponse(response=response_text)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

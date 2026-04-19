@@ -87,6 +87,7 @@ langchain==0.2.5
 langchain-core==0.2.43
 langchain-google-genai==1.0.6
 langchain-openai==0.1.13
+langchain-mistralai==0.1.7
 langchain-text-splitters==0.2.4
 langcodes==3.5.1
 langdetect==1.0.9

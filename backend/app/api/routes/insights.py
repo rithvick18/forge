@@ -34,6 +34,7 @@ async def generate_insight(request: InsightGenerateRequest):
             trends=trends,
             category=request.category,
             focus=request.focus,
+            model_name=request.model_name,
         )
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))

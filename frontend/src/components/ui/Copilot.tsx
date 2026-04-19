@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquare, X, Send, Bot, Sparkles, Minus, Maximize2 } from 'lucide-react'
+import { useConfigStore } from '../../store/configStore'
 
 interface Message {
   role: 'user' | 'ai'
@@ -8,6 +9,7 @@ interface Message {
 }
 
 export default function Copilot() {
+  const { selectedModel } = useConfigStore()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [input, setInput] = useState('')
@@ -35,7 +37,11 @@ export default function Copilot() {
       const response = await fetch('/api/v1/copilot/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, history: messages.slice(-5) })
+        body: JSON.stringify({ 
+          message: input, 
+          history: messages.slice(-5),
+          model_name: selectedModel
+        })
       })
       const data = await response.json()
       setMessages(prev => [...prev, { role: 'ai', content: data.response }])
@@ -71,7 +77,9 @@ export default function Copilot() {
                   <h3 className="text-sm font-bold tracking-tight">Forge Copilot</h3>
                   <div className="flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Powered by Mistral AI</span>
+                    <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">
+                      Powered by {selectedModel === 'mistral' ? 'Mistral Large' : 'Gemini Flash'}
+                    </span>
                   </div>
                 </div>
               </div>

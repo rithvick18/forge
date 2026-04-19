@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_mistralai import ChatMistralAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.tools import tool
 import json
 
@@ -66,15 +67,9 @@ def get_platform_info() -> str:
 
 class CopilotAgent:
     def __init__(self):
-        if not settings.MISTRAL_API_KEY:
-            logger.warning("MISTRAL_API_KEY not set — Copilot will be functionally limited")
-            self.llm = None
-        else:
-            self.llm = ChatMistralAI(
-                model="mistral-large-latest",
-                api_key=settings.MISTRAL_API_KEY,
-                temperature=0.4
-            )
+        self._mistral_llm = None
+        self._gemini_llm = None
+        self._initialize_models()
         
         self.tools = {
             "fetch_trends": fetch_trends,
@@ -82,13 +77,41 @@ class CopilotAgent:
             "generate_market_insight": generate_market_insight,
             "get_platform_info": get_platform_info
         }
-        
-        if self.llm:
-            self.llm_with_tools = self.llm.bind_tools(list(self.tools.values()))
 
-    async def chat(self, user_input: str, history: List[Dict[str, str]] = None) -> str:
-        if not self.llm:
-            return "I'm sorry, my Mistral AI brain is not configured (missing API key)."
+    def _initialize_models(self):
+        if settings.MISTRAL_API_KEY:
+            self._mistral_llm = ChatMistralAI(
+                model="mistral-large-latest",
+                api_key=settings.MISTRAL_API_KEY,
+                temperature=0.4
+            )
+        
+        if settings.GOOGLE_API_KEY:
+            self._gemini_llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-flash",
+                google_api_key=settings.GOOGLE_API_KEY,
+                temperature=0.4
+            )
+
+    def _get_llm(self, model_name: str = "mistral"):
+        llm = None
+        if model_name == "gemini" and self._gemini_llm:
+            llm = self._gemini_llm
+        elif self._mistral_llm:
+            llm = self._mistral_llm
+        elif self._gemini_llm:
+            llm = self._gemini_llm
+            
+        if not llm:
+            raise RuntimeError("LLM not configured. Check API keys in .env")
+        
+        return llm.bind_tools(list(self.tools.values()))
+
+    async def chat(self, user_input: str, history: List[Dict[str, str]] = None, model_name: str = "mistral") -> str:
+        try:
+            llm_with_tools = self._get_llm(model_name)
+        except RuntimeError as e:
+            return str(e)
         
         # Build prompt messages with explicit classes
         messages = [
@@ -112,7 +135,7 @@ class CopilotAgent:
         
         try:
             # First LLM call
-            response = await self.llm_with_tools.ainvoke(messages)
+            response = await llm_with_tools.ainvoke(messages)
             
             # Follow-up with tool results if needed
             if response.tool_calls:
@@ -127,7 +150,7 @@ class CopilotAgent:
                         messages.append(ToolMessage(content=str(result), tool_call_id=tool_id))
                 
                 # Final LLM call
-                response = await self.llm_with_tools.ainvoke(messages)
+                response = await llm_with_tools.ainvoke(messages)
             
             return str(response.content)
             

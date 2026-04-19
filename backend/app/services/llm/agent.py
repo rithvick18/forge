@@ -7,6 +7,7 @@ Generates:
 
 from typing import List, Dict, Optional
 from langchain_mistralai import ChatMistralAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
@@ -14,10 +15,6 @@ import json
 
 from app.core.config import settings
 from app.utils.logger import logger
-
-
-# ── Output schemas ────────────────────────────────────────────────────────────
-# ... (rest of the schemas remain same)
 
 
 # ── Output schemas ────────────────────────────────────────────────────────────
@@ -74,37 +71,51 @@ Target Region: {region}
 
 Recommend {top_n} innovative product concepts that FMCG companies should develop."""
 
-
 # ── Agent class ───────────────────────────────────────────────────────────────
 
 class FMCGIntelAgent:
-    """LLM Agent layer using Mistral AI."""
+    """LLM Agent layer using Mistral AI or Google Gemini."""
 
     def __init__(self):
-        if not settings.MISTRAL_API_KEY:
-            logger.warning("MISTRAL_API_KEY not set — LLM features will be unavailable")
-            self._llm = None
-        else:
-            self._llm = ChatMistralAI(
+        self._mistral_llm = None
+        self._gemini_llm = None
+        self._initialize_models()
+
+    def _initialize_models(self):
+        if settings.MISTRAL_API_KEY:
+            self._mistral_llm = ChatMistralAI(
                 model="mistral-large-latest",
                 api_key=settings.MISTRAL_API_KEY,
                 temperature=0.3,
-                max_tokens=2048,
+            )
+        
+        if settings.GOOGLE_API_KEY:
+            self._gemini_llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-flash",
+                google_api_key=settings.GOOGLE_API_KEY,
+                temperature=0.3,
             )
 
-    def _get_llm(self):
-        if not self._llm:
-            raise RuntimeError("LLM not configured. Set MISTRAL_API_KEY in .env")
-        return self._llm
+    def _get_llm(self, model_name: str = "mistral"):
+        if model_name == "gemini" and self._gemini_llm:
+            return self._gemini_llm
+        if self._mistral_llm:
+            return self._mistral_llm
+        
+        if self._gemini_llm: # fallback
+            return self._gemini_llm
+
+        raise RuntimeError("No LLM configured. Check API keys in .env")
 
     async def generate_insight(
         self,
         trends: List[Dict],
         category: str,
         focus: Optional[str] = None,
+        model_name: str = "mistral",
     ) -> Dict:
         """Generate a market insight brief from trend data."""
-        llm = self._get_llm()
+        llm = self._get_llm(model_name)
         parser = PydanticOutputParser(pydantic_object=InsightOutput)
 
         prompt = ChatPromptTemplate.from_messages([
@@ -135,9 +146,10 @@ class FMCGIntelAgent:
         category: str,
         region: Optional[str] = None,
         top_n: int = 5,
+        model_name: str = "mistral",
     ) -> List[Dict]:
         """Generate product innovation recommendations."""
-        llm = self._get_llm()
+        llm = self._get_llm(model_name)
 
         # For multiple outputs, we request JSON array
         system_prompt = f"""You are a product innovation strategist for Indian FMCG companies.
