@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 COPY install_groups.py .
 RUN python install_groups.py
+RUN pip install --no-cache-dir uvicorn fastapi
 
 # Download spacy model for Indian English if needed (currently disabled)
 # RUN python -m spacy download en_core_web_sm
